@@ -3,44 +3,36 @@ package algorithms
 
 import (
 	"crypto/aes"
-	"errors"
+	"crypto/cipher"
 )
 
-// PRF function implements Algorithm 6: PRF(X) from NIST Special Publication 800-38G.
-// It takes an input block string X and a key K, and returns the result Y.
-func PRF(X []byte, K []byte) ([]byte, error) {
-	// Ensure the key length is valid (AES-128 requires 16-byte keys).
+// PRF computes a pseudorandom value based on AES using CBC mode.
+func PRF(K []byte, data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(K)
 	if err != nil {
 		return nil, err
 	}
 
-	blockSize := aes.BlockSize // AES block size is always 16 bytes (128 bits)
+	// Initialize a zero IV (Initialization Vector)
+	iv := make([]byte, aes.BlockSize)
 
-	// Ensure X is a multiple of the block size.
-	if len(X)%blockSize != 0 {
-		return nil, errors.New("input length must be a multiple of the AES block size")
-	}
+	// Use CBC mode with the zero IV
+	mode := cipher.NewCBCEncrypter(block, iv)
 
-	// Number of blocks (m)
-	m := len(X) / blockSize
+	// Pad the input data to be a multiple of block size
+	paddedData := padToBlockSize(data, aes.BlockSize)
+	ciphertext := make([]byte, len(paddedData))
 
-	// Y0 = 0128, i.e., a block of 16 zero bytes.
-	Y := make([]byte, blockSize)
+	// Encrypt using AES-CBC
+	mode.CryptBlocks(ciphertext, paddedData)
 
-	// Iterate over each block Xj
-	for j := 0; j < m; j++ {
-		Xj := X[j*blockSize : (j+1)*blockSize] // Get block Xj
+	// Return the last block of ciphertext as the PRF result
+	lastBlock := ciphertext[len(ciphertext)-aes.BlockSize:]
+	return lastBlock, nil
+}
 
-		// XOR Yj-1 with Xj
-		for i := range Y {
-			Y[i] ^= Xj[i]
-		}
-
-		// Encrypt the result to produce Yj
-		block.Encrypt(Y, Y)
-	}
-
-	// Return Ym
-	return Y, nil
+// Helper to pad input data to the block size
+func padToBlockSize(data []byte, blockSize int) []byte {
+	padLen := blockSize - (len(data) % blockSize)
+	return append(data, make([]byte, padLen)...)
 }
