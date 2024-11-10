@@ -289,6 +289,8 @@ func FF1Decrypt(K, T []byte, X string, radix, minlen, maxlen, maxTlen int) (stri
 		// Step 6.viii and 6.ix: Swap A and B for next round
 		B = A
 		A = C
+		fmt.Println(A + B)
+
 	}
 
 	// Step 7: Return A || B as the encrypted result

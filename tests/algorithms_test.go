@@ -19,29 +19,41 @@ func TestNumRadix(t *testing.T) {
 		t.Errorf("Expected 26, got %d", x)
 	}
 
+	// Test case: conversion from nist
+	x, err = algorithms.NumRadix("00011010", 5)
+	if err != nil || x != 755 {
+		t.Errorf("Expected 755, got %d", x)
+	}
+
 	_, err = algorithms.NumRadix("1A", 10)
 	if err == nil {
 		t.Errorf("Expected error for invalid input")
 	}
 }
 
-// func TestNumBits(t *testing.T) {
-// 	x, err := algorithms.NumBits("1101")
-// 	if err != nil || x != 13 {
-// 		t.Errorf("Expected 13, got %d", x)
-// 	}
+func TestNumBits(t *testing.T) {
+	x, err := algorithms.NumBits("10000000")
+	if err != nil || x != 128 {
+		t.Errorf("Expected 128, got %d", x)
+	}
 
-// 	_, err = algorithms.NumBits("11012")
-// 	if err == nil {
-// 		t.Errorf("Expected error for invalid input")
-// 	}
-// }
+	_, err = algorithms.NumBits("11012")
+	if err == nil {
+		t.Errorf("Expected error for invalid input")
+	}
+}
 
 func TestStrmRadix(t *testing.T) {
 	// Test case: basic conversion
 	result, err := algorithms.StrmRadix(26, 16, 2)
-	if err != nil || result != "1A" {
-		t.Errorf("Expected 1A, got %s", result)
+	if err != nil || result != "110" {
+		t.Errorf("Expected 110, got %s", result)
+	}
+
+	// Test case: conversion from nist
+	result, err = algorithms.StrmRadix(559, 12, 4)
+	if err != nil || result != "03107" {
+		t.Errorf("Expected 03107, got %s", result)
 	}
 
 	// Test case: radix 10, length 3
