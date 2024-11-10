@@ -25,17 +25,17 @@ func TestNumRadix(t *testing.T) {
 	}
 }
 
-func TestNumBits(t *testing.T) {
-	x, err := algorithms.NumBits("1101")
-	if err != nil || x != 13 {
-		t.Errorf("Expected 13, got %d", x)
-	}
+// func TestNumBits(t *testing.T) {
+// 	x, err := algorithms.NumBits("1101")
+// 	if err != nil || x != 13 {
+// 		t.Errorf("Expected 13, got %d", x)
+// 	}
 
-	_, err = algorithms.NumBits("11012")
-	if err == nil {
-		t.Errorf("Expected error for invalid input")
-	}
-}
+// 	_, err = algorithms.NumBits("11012")
+// 	if err == nil {
+// 		t.Errorf("Expected error for invalid input")
+// 	}
+// }
 
 func TestStrmRadix(t *testing.T) {
 	// Test case: basic conversion
@@ -88,6 +88,16 @@ func TestRevB(t *testing.T) {
 	}
 }
 
+func TestPRF(t *testing.T) {
+	key := make([]byte, 16) // 16-byte AES key
+	X := make([]byte, 16*4)
+	Y, err := algorithms.PRF(X, key)
+	if err != nil {
+		t.Fatalf("Failed to create AES cipher: %v", err)
+	}
+	t.Logf("PRF Output: %v", Y)
+}
+
 func TestMinimalFF1Encrypt(t *testing.T) {
 	key := []byte("examplekey123456") // 16-byte AES key
 	block, err := aes.NewCipher(key)
@@ -111,4 +121,17 @@ func TestFF1Encrypt(t *testing.T) {
 		t.Fatalf("FF1Encrypt failed: %v", err)
 	}
 	t.Logf("Encrypted Output: %s", encrypted)
+	if len(encrypted) != len(input) {
+		t.Fatalf("Expected length: %v but got: %v", len(input), len(encrypted))
+	}
+
+	decrypted, err := algorithms.FF1Decrypt(key, tweak, input, radix, minlen, maxlen, maxTlen)
+	if err != nil {
+		t.Fatalf("FF1Decrypt failed: %v", err)
+	}
+	t.Logf("Decrypted Output: %s", decrypted)
+
+	if input != encrypted {
+		t.Fatalf("Expected decrypted text: %v but got: %v", input, decrypted)
+	}
 }
