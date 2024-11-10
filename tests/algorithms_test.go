@@ -125,7 +125,7 @@ func TestFF1Encrypt(t *testing.T) {
 		t.Fatalf("Expected length: %v but got: %v", len(input), len(encrypted))
 	}
 
-	decrypted, err := algorithms.FF1Decrypt(key, tweak, input, radix, minlen, maxlen, maxTlen)
+	decrypted, err := algorithms.FF1Decrypt(key, tweak, encrypted, radix, minlen, maxlen, maxTlen)
 	if err != nil {
 		t.Fatalf("FF1Decrypt failed: %v", err)
 	}

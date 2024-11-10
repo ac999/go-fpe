@@ -27,6 +27,7 @@ func PRF(X []byte, K []byte) ([]byte, error) {
 
 	// Y0 = 0128, i.e., a block of 16 zero bytes.
 	Y := make([]byte, blockSize)
+	Yaux := make([]byte, blockSize)
 
 	// Iterate over each block Xj
 	for j := 0; j < m; j++ {
@@ -38,7 +39,8 @@ func PRF(X []byte, K []byte) ([]byte, error) {
 		}
 
 		// Encrypt the result to produce Yj
-		block.Encrypt(Y, Y)
+		block.Encrypt(Yaux, Y)
+		copy(Y, Yaux)
 	}
 
 	// Return Ym
