@@ -19,7 +19,7 @@ func power(x uint64, y uint64) uint64 {
 func intToNBytes(x int, n int) []byte {
 
 	result := make([]byte, n)
-	for i := 0; i < n; i++ {
+	for i := n - 1; i >= 0; i-- {
 		result[i] = byte(x % 10)
 		x /= 10
 	}
@@ -28,7 +28,7 @@ func intToNBytes(x int, n int) []byte {
 
 func uint64ToNBytes(x uint64, n int) []byte {
 	result := make([]byte, n)
-	for i := 0; i < n; i++ {
+	for i := n - 1; i >= 0; i-- {
 		result[i] = byte(x % 10)
 		x /= 10
 	}
