@@ -8,7 +8,7 @@ func UintToBytes(num uint64) []byte {
 	return bytes
 }
 
-func power(x uint64, y uint64) uint64 {
+func power(x, y uint64) uint64 {
 	result := uint64(1)
 	for i := uint64(0); i < y; i++ {
 		result *= x
@@ -17,13 +17,12 @@ func power(x uint64, y uint64) uint64 {
 }
 
 func intToNBytes(x int, n int) []byte {
-
 	result := make([]byte, n)
 	for i := n - 1; i >= 0; i-- {
 		result[i] = byte(x % 10)
 		x /= 10
 	}
-	return []byte(result)
+	return result
 }
 
 func uint64ToNBytes(x uint64, n int) []byte {
@@ -32,5 +31,5 @@ func uint64ToNBytes(x uint64, n int) []byte {
 		result[i] = byte(x % 10)
 		x /= 10
 	}
-	return []byte(result)
+	return result
 }

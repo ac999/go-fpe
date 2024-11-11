@@ -25,17 +25,17 @@ func TestNumRadix(t *testing.T) {
 	}
 }
 
-// func TestNumBits(t *testing.T) {
-// 	x, err := algorithms.NumBits("1101")
-// 	if err != nil || x != 13 {
-// 		t.Errorf("Expected 13, got %d", x)
-// 	}
+func TestNumBits(t *testing.T) {
+	x, err := algorithms.NumBits("1101")
+	if err != nil || x != 13 {
+		t.Errorf("Expected 13, got %d", x)
+	}
 
-// 	_, err = algorithms.NumBits("11012")
-// 	if err == nil {
-// 		t.Errorf("Expected error for invalid input")
-// 	}
-// }
+	_, err = algorithms.NumBits("11012")
+	if err == nil {
+		t.Errorf("Expected error for invalid input")
+	}
+}
 
 func TestStrmRadix(t *testing.T) {
 	// Test case: basic conversion
