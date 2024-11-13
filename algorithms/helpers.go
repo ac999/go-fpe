@@ -1,14 +1,13 @@
+// algorithms/helpers.go
 package algorithms
 
-import "encoding/binary"
+import (
+	"fmt"
+	"strings"
+)
 
-func UintToBytes(num uint64) []byte {
-	var bytes = make([]byte, 8)
-	binary.PutUvarint(bytes, num)
-	return bytes
-}
-
-func power(x, y uint64) uint64 {
+// Power - Computes x^y for uint64, avoids overflow
+func Power(x, y uint64) uint64 {
 	result := uint64(1)
 	for i := uint64(0); i < y; i++ {
 		result *= x
@@ -16,20 +15,46 @@ func power(x, y uint64) uint64 {
 	return result
 }
 
-func intToNBytes(x int, n int) []byte {
-	result := make([]byte, n)
-	for i := n - 1; i >= 0; i-- {
-		result[i] = byte(x % 10)
-		x /= 10
+// NumRadix - Converts a numeral string `X` into an integer based on the radix
+func NumRadix(X string, radix int) (uint64, error) {
+	var x uint64
+	for _, char := range X {
+		var digit uint64
+		if char >= '0' && char <= '9' {
+			digit = uint64(char - '0')
+		} else if char >= 'A' && char <= 'Z' {
+			digit = uint64(char-'A') + 10
+		} else {
+			return 0, fmt.Errorf("invalid character '%c' for radix %d", char, radix)
+		}
+
+		if digit >= uint64(radix) {
+			return 0, fmt.Errorf("invalid digit '%c' for radix %d", char, radix)
+		}
+		x = x*uint64(radix) + digit
 	}
-	return result
+	return x, nil
 }
 
-func uint64ToNBytes(x uint64, n int) []byte {
-	result := make([]byte, n)
-	for i := n - 1; i >= 0; i-- {
-		result[i] = byte(x % 10)
-		x /= 10
+// StrmRadix - Converts integer `x` into a numeral string of length `m` in a given radix
+func StrmRadix(x uint64, radix int, m int) (string, error) {
+	if x >= Power(uint64(radix), uint64(m)) {
+		return "", fmt.Errorf("x (%d) out of bounds for radix^m", x)
 	}
-	return result
+
+	digits := make([]int, m)
+	for i := 0; i < m; i++ {
+		digits[m-1-i] = int(x % uint64(radix))
+		x /= uint64(radix)
+	}
+
+	var result strings.Builder
+	for _, digit := range digits {
+		if digit < 10 {
+			result.WriteByte(byte(digit + '0'))
+		} else {
+			result.WriteByte(byte(digit - 10 + 'A'))
+		}
+	}
+	return result.String(), nil
 }
