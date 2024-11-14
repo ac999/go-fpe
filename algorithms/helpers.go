@@ -3,66 +3,130 @@ package algorithms
 
 import (
 	"errors"
-	"math/big"
+	"fmt"
 )
 
 // Helper functions
 
-func floor(x, y uint64) uint64 {
+// Representation of Character Strings
+
+// StringToNumeralSlice converts a character string to a slice of numerals (`[]uint64`) based on the specified alphabet.
+// The radix is derived from the length of the alphabet. Returns an error if the input contains characters not in the alphabet.
+func StringToNumeralSlice(input, alphabet string) ([]uint64, error) {
+	// Create a map for character to numeral values based on the alphabet
+	charToNum := make(map[rune]uint64)
+	for i, char := range alphabet {
+		charToNum[char] = uint64(i)
+	}
+
+	// Convert each character to its numeral representation
+	numerals := make([]uint64, len(input))
+	for i, ch := range input {
+		num, exists := charToNum[ch]
+		if !exists {
+			return nil, errors.New("input contains characters not in the specified alphabet")
+		}
+		numerals[i] = num
+	}
+	return numerals, nil
+}
+
+// NumeralSliceToInt converts a slice of numerals (`[]uint64`) into an integer value based on the given radix.
+// This follows FF1 convention with decreasing order of significance.
+func NumeralSliceToInt(numerals []uint64, radix uint64) *uint64 {
+	result := uint64(0)
+	for _, numeral := range numerals {
+		result = result*radix + numeral
+	}
+	return &result
+}
+
+// Basic Operations and Functions
+
+func FloorDiv(x, y uint64) uint64 {
 	return x / y
 }
 
-func ceiling(x, y int) int {
+func CeilingDiv(x, y uint64) uint64 {
 	if x%y == 0 {
 		return x / y
 	}
 	return x/y + 1
 }
 
-func mod(x, m int) int {
-	return ((x % m) + m) % m
+func Mod(x, m uint64) uint64 {
+	return x - m*(x/m)
 }
 
-func representCharacters(s string, radix int) ([]int, error) {
-	characters := make([]int, len(s))
-	for i, ch := range s {
-		charVal := int(ch - '0')
-		if charVal >= radix {
-			return nil, errors.New("character out of range for radix")
-		}
-		characters[i] = charVal
+// Power - Computes x^y for uint64
+func Power(x, y uint64) uint64 {
+	result := uint64(1)
+	for i := uint64(0); i < y; i++ {
+		result *= x
 	}
-	return characters, nil
+	return result
 }
 
-func numStringToInt(s string, radix int) *big.Int {
-	n := big.NewInt(0)
-	for _, ch := range s {
-		n.Mul(n, big.NewInt(int64(radix)))
-		n.Add(n, big.NewInt(int64(ch-'0')))
+func ByteLen(x []byte) uint64 {
+	return uint64(len(x) / 8)
+}
+
+// BreakInBlocks splits a byte slice into blocks of a specified size.
+func BreakInBlocks(X []byte, blockSize int) ([][]byte, error) {
+	if len(X)%blockSize != 0 {
+		return nil, fmt.Errorf("the length of the byte slice must be a multiple of the block size")
 	}
-	return n
-}
-
-func intToNumString(x *big.Int, m int, radix int) string {
-	num := x
-	radixBig := big.NewInt(int64(radix))
-	digits := make([]byte, m)
-	for i := m - 1; i >= 0; i-- {
-		mod := new(big.Int)
-		num.DivMod(num, radixBig, mod)
-		digits[i] = byte(mod.Int64() + '0')
+	var blocks [][]byte
+	for i := 0; i < len(X); i += blockSize {
+		blocks = append(blocks, X[i:i+blockSize])
 	}
-	return string(digits)
+	return blocks, nil
 }
 
-// // Power - Computes x^y for uint64, avoids overflow
-// func Power(x, y uint64) uint64 {
-// 	result := uint64(1)
-// 	for i := uint64(0); i < y; i++ {
-// 		result *= x
+// Xor on byte slices
+func XORBytes(a, b []byte) ([]byte, error) {
+	if len(a) != len(b) {
+		return nil, fmt.Errorf("byte slices must be of the same length")
+	}
+
+	result := make([]byte, len(a))
+	for i := range a {
+		result[i] = a[i] ^ b[i]
+	}
+	return result, nil
+}
+
+// func representCharacters(s string, radix uint64) ([]uint64, error) {
+// 	characters := make([]int, len(s))
+// 	for i, ch := range s {
+// 		charVal := int(ch - '0')
+// 		if charVal >= radix {
+// 			return nil, errors.New("character out of range for radix")
+// 		}
+// 		characters[i] = charVal
 // 	}
-// 	return result
+// 	return characters, nil
+// }
+
+// func numStringToInt(s string, radix int) *big.Int {
+// 	n := big.NewInt(0)
+// 	for _, ch := range s {
+// 		n.Mul(n, big.NewInt(int64(radix)))
+// 		n.Add(n, big.NewInt(int64(ch-'0')))
+// 	}
+// 	return n
+// }
+
+// func intToNumString(x *big.Int, m int, radix int) string {
+// 	num := x
+// 	radixBig := big.NewInt(int64(radix))
+// 	digits := make([]byte, m)
+// 	for i := m - 1; i >= 0; i-- {
+// 		mod := new(big.Int)
+// 		num.DivMod(num, radixBig, mod)
+// 		digits[i] = byte(mod.Int64() + '0')
+// 	}
+// 	return string(digits)
 // }
 
 // // NumRadix - Converts a numeral string `X` into an integer based on the radix
