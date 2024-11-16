@@ -2,7 +2,8 @@
 package tests
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/hex"
 	"reflect"
 	"testing"
 
@@ -19,11 +20,11 @@ func TestStringToNumeralSlice(t *testing.T) {
 	tests := []struct {
 		input     string
 		alphabet  string
-		expected  []uint64
+		expected  []byte
 		shouldErr bool
 	}{
-		{"hello", alphabets["base26"], []uint64{7, 4, 11, 11, 14}, false},
-		{"01234", alphabets["base10"], []uint64{0, 1, 2, 3, 4}, false},
+		{"hello", alphabets["base26"], []byte{7, 4, 11, 11, 14}, false},
+		{"01234", alphabets["base10"], []byte{0, 1, 2, 3, 4}, false},
 		{"hello1", alphabets["base26"], nil, true}, // Invalid character '1' for base26
 	}
 
@@ -70,6 +71,17 @@ func TestMod(t *testing.T) {
 	}
 }
 
+func TestModInt(t *testing.T) {
+	result := algorithms.ModInt(-3, 7)
+	if result != 4 {
+		t.Errorf("expected %d, got %d", 4, result)
+	}
+	result = algorithms.ModInt(-4, 16)
+	if result != 12 {
+		t.Errorf("expected %d, got %d", 12, result)
+	}
+}
+
 func TestByteLen(t *testing.T) {
 	x := []byte{1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0}
 	result := algorithms.ByteLen(x)
@@ -87,10 +99,25 @@ func TestNUM(t *testing.T) {
 }
 
 func TestNUMradix(t *testing.T) {
-	X := []byte{0, 0, 0, 1, 1, 0, 1, 0}
-	result := algorithms.NUMradix(X, 5)
-	if result != 755 {
-		t.Errorf("expected %d, got %d", 755, result)
+	tests := []struct {
+		X        []byte
+		radix    uint64
+		expected uint64
+	}{
+		{[]byte{0, 0, 0, 1, 1, 0, 1, 0}, 5, 755},
+		{[]byte{1, 0, 1, 1}, 2, 11},
+		{[]byte{3, 2, 1}, 4, 57},
+		{[]byte{1, 2, 3}, 10, 123},
+		{[]byte{0, 0, 1, 2, 3}, 10, 123},
+		{[]byte{7}, 10, 7},
+		{[]byte{}, 10, 0},
+	}
+
+	for _, test := range tests {
+		result := algorithms.NUMradix(test.X, test.radix)
+		if result != test.expected {
+			t.Errorf("For input X=%v and radix=%d, expected %d, but got %d", test.X, test.radix, test.expected, result)
+		}
 	}
 }
 
@@ -169,30 +196,84 @@ func TestXORBytes(t *testing.T) {
 }
 
 func TestSTRmRadix(t *testing.T) {
-	expected1 := []byte{0, 3, 10, 7}
-	expected2 := []byte{0, 0, 0, 0, 0, 0, 0, 1}
+	tests := []struct {
+		x        uint64
+		radix    uint64
+		m        int64
+		expected []byte
+	}{
+		{559, 12, 4, []byte{0, 3, 10, 7}},
+		{1, 2, 8, []byte{0, 0, 0, 0, 0, 0, 0, 1}},
+		{255, 16, 2, []byte{15, 15}},
+		{1024, 2, 11, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
+		{123, 10, 3, []byte{1, 2, 3}},
+	}
 
-	result1 := algorithms.STRmRadix(559, 12, 4)
-	result2 := algorithms.STRmRadix(1, 2, 8)
-	if len(result1) != len(expected1) {
-		t.Errorf("STRmRadix() length = %v, expected %v", len(result1), len(expected1))
-	} else {
-		for i := range len(result1) {
-			if result1[i] != expected1[i] {
-				fmt.Printf("expected result %d, got %d", expected1, result1)
-				t.Errorf("STRmRadix() result at index %v = %v, expected %v", i, result1[i], expected1[i])
+	for _, test := range tests {
+		result := algorithms.STRmRadix(test.x, test.radix, test.m)
+		if len(result) != len(test.expected) {
+			t.Errorf("STRmRadix() length = %v, expected %v", len(result), len(test.expected))
+		} else {
+			for i := range result {
+				if result[i] != test.expected[i] {
+					t.Errorf("STRmRadix() result at index %v = %v, expected %v", i, result[i], test.expected[i])
+				}
 			}
 		}
 	}
-	if len(result2) != len(expected2) {
-		t.Errorf("STRmRadix() length = %v, expected %v", len(result2), len(expected2))
-	} else {
-		for i := range len(result1) {
-			if result2[i] != expected2[i] {
-				fmt.Printf("expected result %d, got %d", expected2, result2)
-				t.Errorf("STRmRadix() result at index %v = %v, expected %v", i, result2[i], expected2[i])
+}
+
+// TestAesEncrypt validates AES encryption against FIPS 197 test vectors.
+func TestAesEncrypt(t *testing.T) {
+	tests := []struct {
+		name              string
+		keyHex            string
+		plaintextHex      string
+		expectedCipherHex string
+	}{
+		{
+			name:              "FIPS 197 Example: AES-128",
+			keyHex:            "000102030405060708090A0B0C0D0E0F",
+			plaintextHex:      "00112233445566778899AABBCCDDEEFF",
+			expectedCipherHex: "69C4E0D86A7B0430D8CDB78070B4C55A",
+		},
+		{
+			name:              "All Zeros Key and Plaintext",
+			keyHex:            "00000000000000000000000000000000",
+			plaintextHex:      "00000000000000000000000000000000",
+			expectedCipherHex: "66E94BD4EF8A2C3B884CFA59CA342B2E",
+		},
+		{
+			name:              "Incrementing Bytes Key and Plaintext",
+			keyHex:            "101112131415161718191A1B1C1D1E1F",
+			plaintextHex:      "202122232425262728292A2B2C2D2E2F",
+			expectedCipherHex: "D31DD57E62812CDDABD1CCAA3C47979B",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			key, err := hex.DecodeString(test.keyHex)
+			if err != nil {
+				t.Fatalf("Invalid key hex: %s", test.keyHex)
 			}
-		}
+
+			plaintext, err := hex.DecodeString(test.plaintextHex)
+			if err != nil {
+				t.Fatalf("Invalid plaintext hex: %s", test.plaintextHex)
+			}
+
+			expectedCipher, err := hex.DecodeString(test.expectedCipherHex)
+			if err != nil {
+				t.Fatalf("Invalid expected cipher hex: %s", test.expectedCipherHex)
+			}
+
+			cipher := algorithms.AesEncrypt(plaintext, key)
+
+			if !bytes.Equal(cipher, expectedCipher) {
+				t.Errorf("Test %s failed.\nGot:      %X\nExpected: %X", test.name, cipher, expectedCipher)
+			}
+		})
 	}
 }
 
@@ -228,16 +309,11 @@ func TestSTRmRadix(t *testing.T) {
 
 func TestPRF(t *testing.T) {
 	K := []byte{0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c}
-	X := []uint64{1, 2, 1, 0, 0, 10, 10, 5, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 221, 213}
-
-	var Xbitstring []byte
-	for _, x := range X {
-		Xbitstring = append(Xbitstring, algorithms.STRmRadix(x, 2, 8)...)
-	}
+	X := []byte{1, 2, 1, 0, 0, 10, 10, 5, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 221, 213}
 
 	expected := []byte{195, 184, 41, 161, 232, 100, 43, 120, 204, 41, 148, 123, 59, 147, 219, 99}
 
-	result, err := algorithms.PRF(K, Xbitstring)
+	result, err := algorithms.PRF(K, X)
 	if err != nil {
 		t.Errorf("PRF() error: %v", err)
 		return
@@ -252,43 +328,131 @@ func TestPRF(t *testing.T) {
 	}
 }
 
-// func TestNumStringToIntAndBack(t *testing.T) {
-// 	plaintext := "0123456789"
-// 	radix := 10
-// 	n := algorithms.numStringToInt(plaintext, radix)
-// 	result := algorithms.intToNumString(n, len(plaintext), radix)
+func TestFF1EncryptDecrypt(t *testing.T) {
+	// Test cases from FF1samples.pdf
+	testCases := []struct {
+		name         string
+		keyHex       string
+		tweak        []byte
+		plaintextStr string
+		expectedEnc  string
+		radix        uint64
+	}{
+		{
+			name:         "FF1-AES128-Sample1",
+			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3C",
+			tweak:        []byte{},
+			plaintextStr: "0123456789",
+			expectedEnc:  "2433477484",
+			radix:        10,
+		},
+		{
+			name:         "FF1-AES128-Sample2",
+			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3C",
+			tweak:        []byte{},
+			plaintextStr: "9876543210",
+			expectedEnc:  "5868123250",
+			radix:        10,
+		},
+		// Add more test cases here from FF1samples.pdf
+	}
 
-// 	if result != plaintext {
-// 		t.Errorf("expected %v, got %v", plaintext, result)
-// 	}
-// }
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Step 1: Parse the key
+			key, err := hex.DecodeString(tc.keyHex)
+			if err != nil {
+				t.Fatalf("Failed to decode key: %v", err)
+			}
 
-// func TestMod(t *testing.T) {
-// 	if res := algorithms.mod(-3, 7); res != 4 {
-// 		t.Errorf("expected mod(-3, 7) to be 4, got %d", res)
-// 	}
-// 	if res := algorithms.mod(13, 7); res != 6 {
-// 		t.Errorf("expected mod(13, 7) to be 6, got %d", res)
-// 	}
-// }
+			// Step 2: Convert plaintext and expected ciphertext to numeral slices
+			plaintext, err := algorithms.StringToNumeralSlice(tc.plaintextStr, alphabets["base10"])
+			if err != nil {
+				t.Fatalf("Failed to convert plaintext string to numeral slice: %v", err)
+			}
+
+			expectedEnc, err := algorithms.StringToNumeralSlice(tc.expectedEnc, alphabets["base10"])
+			if err != nil {
+				t.Fatalf("Failed to convert expected ciphertext string to numeral slice: %v", err)
+			}
+
+			// Debugging: Print the converted plaintext
+			t.Logf("Converted plaintext = %v", plaintext)
+
+			// Step 3: Perform encryption
+			ciphertext, err := algorithms.Encrypt(key, tc.tweak, plaintext, tc.radix)
+			if err != nil {
+				t.Fatalf("Encryption failed: %v", err)
+			}
+
+			// Debugging: Print encryption result
+			t.Logf("Ciphertext = %v (expected: %v)", ciphertext, expectedEnc)
+
+			// Step 4: Validate encryption result
+			if !reflect.DeepEqual(ciphertext, expectedEnc) {
+				t.Errorf("Encrypt() result = %v, expected %v", ciphertext, expectedEnc)
+			}
+
+			// Step 5: Perform decryption
+			decryptedText, err := algorithms.Decrypt(key, tc.tweak, ciphertext, tc.radix)
+			if err != nil {
+				t.Fatalf("Decryption failed: %v", err)
+			}
+
+			// Debugging: Print decryption result
+			t.Logf("Decrypted plaintext = %v (expected: %v)", decryptedText, plaintext)
+
+			// Step 6: Validate decryption result
+			if !reflect.DeepEqual(decryptedText, plaintext) {
+				t.Errorf("Decrypt() result = %v, expected %v", decryptedText, plaintext)
+			}
+
+			// Step 7: Ensure encryption-decryption cycle is consistent
+			if len(decryptedText) != len(plaintext) {
+				t.Errorf("Decrypt() length = %v, expected %v", len(decryptedText), len(plaintext))
+			} else {
+				for i := range decryptedText {
+					if decryptedText[i] != plaintext[i] {
+						t.Errorf("Decrypt() mismatch at index %v: got %v, expected %v", i, decryptedText[i], plaintext[i])
+					}
+				}
+			}
+		})
+	}
+}
 
 // func TestFF1EncryptDecrypt(t *testing.T) {
 // 	key, _ := hex.DecodeString("2B7E151628AED2A6ABF7158809CF4F3C")
 // 	tweak := []byte{}
 
-// 	plaintext := "0123456789"
-// 	ciphertext, err := algorithms.FF1Encrypt(key, tweak, plaintext, 10)
+// 	plaintext, err := algorithms.StringToNumeralSlice("0123456789", alphabets["base10"])
+// 	expected_enc, err := algorithms.StringToNumeralSlice("2433477484", alphabets["base10"])
+// 	if err != nil {
+// 		t.Fatalf("conversion of plaintext failed: %v", err)
+// 	}
+
+// 	// Debugging
+// 	fmt.Println("Converted plaintext = ")
+// 	fmt.Println(plaintext)
+
+// 	ciphertext, err := algorithms.Encrypt(key, tweak, plaintext, 10)
 // 	if err != nil {
 // 		t.Fatalf("encryption failed: %v", err)
 // 	}
 
-// 	decryptedText, err := algorithms.FF1Decrypt(key, tweak, ciphertext, 10)
+// 	decryptedText, err := algorithms.Decrypt(key, tweak, ciphertext, 10)
 // 	if err != nil {
 // 		t.Fatalf("decryption failed: %v", err)
 // 	}
 
-// 	if decryptedText != plaintext {
-// 		t.Errorf("expected %v, got %v", plaintext, decryptedText)
+// 	if len(decryptedText) != len(plaintext) {
+// 		t.Errorf("Decrypt() length = %v, expected %v", len(decryptedText), len(plaintext))
+// 	} else {
+// 		for i := range len(decryptedText) {
+// 			if decryptedText[i] != plaintext[i] {
+// 				t.Errorf("Decrypt() result at index %v = %v, expected %v", i, decryptedText[i], plaintext[i])
+// 			}
+// 		}
 // 	}
 // }
 
