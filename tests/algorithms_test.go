@@ -196,39 +196,60 @@ func TestSTRmRadix(t *testing.T) {
 	}
 }
 
+// func TestPRF(t *testing.T) {
+// 	K := []byte{0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c}
+// 	X := []uint64{1, 2, 1, 0, 0, 10, 10, 5, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 221, 213}
+
+// 	var Xbitstring []byte
+
+// 	for i := range len(X) {
+// 		Xbitstring = append(Xbitstring, algorithms.STRmRadix(X[i], 2, 8)...)
+// 	}
+
+// 	expected := []byte{195, 184, 41, 161, 232, 100, 43, 120, 204, 41, 148, 123, 59, 147, 219, 99}
+// 	expectedLen := len(expected)
+// 	result, err := algorithms.PRF(K, Xbitstring)
+// 	if err != nil {
+// 		t.Errorf("PRF() error = %v", err)
+// 		return
+// 	}
+
+// 	if len(result) != expectedLen {
+// 		t.Errorf("expected length %d, got %d", expectedLen, len(result))
+// 	} else {
+// 		for i := range expectedLen {
+// 			if result[i] != expected[i] {
+// 				t.Errorf("expected result at index %d: %d, got %d", i, expected[i], result[i])
+// 			}
+// 		}
+// 	}
+
+// }
+
 func TestPRF(t *testing.T) {
 	K := []byte{0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c}
 	X := []uint64{1, 2, 1, 0, 0, 10, 10, 5, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 221, 213}
 
 	var Xbitstring []byte
-
-	for i := range len(X) {
-		Xbitstring = append(Xbitstring, algorithms.STRmRadix(X[i], 2, 8)...)
-		// fmt.Printf("iteration %v, Xbitstring = %v\n", i, Xbitstring)
+	for _, x := range X {
+		Xbitstring = append(Xbitstring, algorithms.STRmRadix(x, 2, 8)...)
 	}
 
-	// println(len(X) * 8)
-	// println(len(Xbitstring))
-
 	expected := []byte{195, 184, 41, 161, 232, 100, 43, 120, 204, 41, 148, 123, 59, 147, 219, 99}
-	expectedLen := len(expected)
+
 	result, err := algorithms.PRF(K, Xbitstring)
 	if err != nil {
-		t.Errorf("PRF() error = %v", err)
+		t.Errorf("PRF() error: %v", err)
 		return
 	}
 
-	if len(result)/8 != expectedLen {
-		t.Errorf("expected length %d, got %d", expectedLen, len(result))
-	} else {
-		for i := range expectedLen {
-			if result[i] != expected[i] {
-				fmt.Printf("expected result %d, got %d", expected, result)
-				t.Errorf("expected result at index %d: %d, got %d", i, expectedLen, len(result))
-			}
-		}
+	for i, resultByte := range result {
+		t.Logf("Result[%d]: %d (expected: %d)", i, resultByte, expected[i])
 	}
 
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %v, but got %v", expected, result)
+	}
 }
 
 // func TestNumStringToIntAndBack(t *testing.T) {

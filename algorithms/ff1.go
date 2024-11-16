@@ -1,81 +1,96 @@
 package algorithms
 
+import (
+	"crypto/aes"
+	"math"
+)
+
 // import (
 // 	"crypto/aes"
 // 	"crypto/cipher"
 // 	"math/big"
 // )
 
-// // Encrypt a single block using AES
-// func encryptBlockAES(block cipher.Block, input []byte) []byte {
-// 	output := make([]byte, block.BlockSize())
-// 	block.Encrypt(output, input)
-// 	return output
-// }
+func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return []byte{0}, err
+	}
 
-// // FF1 Encryption Core with Feistel rounds
-// func FF1Encrypt(key, tweak []byte, plaintext string, radix int) (string, error) {
-// 	block, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return "", err
-// 	}
+	// Step 1
+	t := uint64(len(tweak))
+	n := uint64(len(X))
+	u := n / 2
+	v := n - u
 
-// 	n := len(plaintext)
-// 	u := n / 2
-// 	v := n - u
+	// Step 2
+	A, B := X[:u], X[u:]
 
-// 	A, B := plaintext[:u], plaintext[u:]
-// 	charsA, err := representCharacters(A, radix)
-// 	charsB, err := representCharacters(B, radix)
+	// Step 3
+	b := CeilingDiv(uint64(math.Ceil(float64(v)*math.Log2(float64(radix)))), 8)
 
-// 	for i := 0; i < 10; i++ {
-// 		// Construct Q with tweak and round index
-// 		Q := make([]byte, len(tweak)+1+len(charsA)+len(charsB))
-// 		copy(Q, tweak)
-// 		Q[len(tweak)] = byte(i)
+	// Step 4
+	d := 4*CeilingDiv(b, 4) + 4
 
-// 		// Calculate S and y using AES encryption on Q
-// 		y := new(big.Int)
-// 		R := encryptBlockAES(block, Q)
-// 		y.SetBytes(R[:len(R)/2])
+	// Step 5
+	P := STRmRadix(1, 2, 8)
+	P = append(P, STRmRadix(2, 2, 8)...)
+	P = append(P, STRmRadix(1, 2, 8)...)
+	P = append(P, STRmRadix(radix, 2, 3*8)...)
+	P = append(P, STRmRadix(10, 2, 8)...)
+	P = append(P, STRmRadix(Mod(u, 256), 2, 8)...)
+	P = append(P, STRmRadix(n, 2, 4*8)...)
+	P = append(P, STRmRadix(t, 2, 4*8)...)
+	// Step 6
+	for i := 0; i < 10; i++ {
+		// Step 6.i
+		Q := tweak
+		Q = append(Q, STRmRadix(0, 2, 8*ModInt(0-int64(t)-int64(b)-1, 16))...)
+		Q = append(Q, STRmRadix(uint64(i), 2, 8)...)
+		Q = append(Q, STRmRadix(NUMradix(B, radix), 2, int64(b*8))...)
 
-// 		m := len(charsB)
-// 		c := mod(int(y.Int64()), m)
-// 		C := intToNumString(big.NewInt(int64(c)), m, radix)
+		R := append(P, Q...)
 
-// 		charsA, charsB = charsB, C
-// 	}
-// 	return A + B, nil
-// }
+		// Step 6.ii
+		R, err = PRF(key, R)
+		if err != nil {
+			return []byte{0}, err
+		}
 
-// func FF1Decrypt(key, tweak []byte, ciphertext string, radix int) (string, error) {
-// 	block, err := aes.NewCipher(key)
-// 	if err != nil {
-// 		return "", err
-// 	}
+		// Step 6.iii
+		S := R
+		for j := uint64(1); j < FloorDiv(d, 16); j++ {
+			RxorJ, err := XORBytes(R, STRmRadix(j, 2, 16*8))
+			if err != nil {
+				return []byte{0}, err
+			}
+			var encryptedBlock []byte
+			block.Encrypt(encryptedBlock, RxorJ)
+			S = append(S, encryptedBlock...)
+		}
 
-// 	n := len(ciphertext)
-// 	u := n / 2
-// 	v := n - u
+		// Step 6.iv
+		y := NUM(S)
 
-// 	A, B := ciphertext[:u], ciphertext[u:]
-// 	charsA, err := representCharacters(A, radix)
-// 	charsB, err := representCharacters(B, radix)
+		// Step 6.v
+		m := int64(v)
+		if i%2 == 0 {
+			m = int64(u)
+		}
 
-// 	for i := 9; i >= 0; i-- {
-// 		Q := make([]byte, len(tweak)+1+len(charsA)+len(charsB))
-// 		copy(Q, tweak)
-// 		Q[len(tweak)] = byte(i)
+		// Step 6.vi
+		c := NUMradix(A, radix) + y
 
-// 		y := new(big.Int)
-// 		R := encryptBlockAES(block, Q)
-// 		y.SetBytes(R[:len(R)/2])
+		// Step 6.vii
+		C := STRmRadix(c, radix, m)
 
-// 		m := len(charsA)
-// 		c := mod(int(y.Int64()), m)
-// 		C := intToNumString(big.NewInt(int64(c)), m, radix)
+		// Step 6.viii
+		A = B
 
-// 		charsA, charsB = charsB, C
-// 	}
-// 	return A + B, nil
-// }
+		// Step 6.ix
+		B = C
+	}
+	// Step 7
+	A = append(A, B...)
+	return A, nil
+}

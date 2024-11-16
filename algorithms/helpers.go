@@ -58,6 +58,10 @@ func Mod(x, m uint64) uint64 {
 	return x - m*(x/m)
 }
 
+func ModInt(x int64, m int64) int64 {
+	return x - m*(x/m)
+}
+
 // Power - Computes x^y for uint64
 func Power(x, y uint64) uint64 {
 	result := uint64(1)
