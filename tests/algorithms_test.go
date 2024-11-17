@@ -322,36 +322,6 @@ func TestAesEncrypt(t *testing.T) {
 	}
 }
 
-// func TestPRF(t *testing.T) {
-// 	K := []byte{0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c}
-// 	X := []uint64{1, 2, 1, 0, 0, 10, 10, 5, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 221, 213}
-
-// 	var Xbitstring []byte
-
-// 	for i := range len(X) {
-// 		Xbitstring = append(Xbitstring, algorithms.STRmRadix(X[i], 2, 8)...)
-// 	}
-
-// 	expected := []byte{195, 184, 41, 161, 232, 100, 43, 120, 204, 41, 148, 123, 59, 147, 219, 99}
-// 	expectedLen := len(expected)
-// 	result, err := algorithms.PRF(K, Xbitstring)
-// 	if err != nil {
-// 		t.Errorf("PRF() error = %v", err)
-// 		return
-// 	}
-
-// 	if len(result) != expectedLen {
-// 		t.Errorf("expected length %d, got %d", expectedLen, len(result))
-// 	} else {
-// 		for i := range expectedLen {
-// 			if result[i] != expected[i] {
-// 				t.Errorf("expected result at index %d: %d, got %d", i, expected[i], result[i])
-// 			}
-// 		}
-// 	}
-
-// }
-
 func TestPRF(t *testing.T) {
 	K := []byte{0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c}
 	X := []byte{1, 2, 1, 0, 0, 10, 10, 5, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 221, 213}
@@ -468,51 +438,3 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 		})
 	}
 }
-
-// func TestFF1EncryptDecrypt(t *testing.T) {
-// 	key, _ := hex.DecodeString("2B7E151628AED2A6ABF7158809CF4F3C")
-// 	tweak := []byte{}
-
-// 	plaintext, err := algorithms.StringToNumeralSlice("0123456789", alphabets["base10"])
-// 	expected_enc, err := algorithms.StringToNumeralSlice("2433477484", alphabets["base10"])
-// 	if err != nil {
-// 		t.Fatalf("conversion of plaintext failed: %v", err)
-// 	}
-
-// 	// Debugging
-// 	fmt.Println("Converted plaintext = ")
-// 	fmt.Println(plaintext)
-
-// 	ciphertext, err := algorithms.Encrypt(key, tweak, plaintext, 10)
-// 	if err != nil {
-// 		t.Fatalf("encryption failed: %v", err)
-// 	}
-
-// 	decryptedText, err := algorithms.Decrypt(key, tweak, ciphertext, 10)
-// 	if err != nil {
-// 		t.Fatalf("decryption failed: %v", err)
-// 	}
-
-// 	if len(decryptedText) != len(plaintext) {
-// 		t.Errorf("Decrypt() length = %v, expected %v", len(decryptedText), len(plaintext))
-// 	} else {
-// 		for i := range len(decryptedText) {
-// 			if decryptedText[i] != plaintext[i] {
-// 				t.Errorf("Decrypt() result at index %v = %v, expected %v", i, decryptedText[i], plaintext[i])
-// 			}
-// 		}
-// 	}
-// }
-
-// func TestRepresentCharacters(t *testing.T) {
-// 	result, err := algorithms.representCharacters("01234", 10)
-// 	if err != nil {
-// 		t.Fatalf("representation failed: %v", err)
-// 	}
-// 	expected := []int{0, 1, 2, 3, 4}
-// 	for i, v := range result {
-// 		if v != expected[i] {
-// 			t.Errorf("expected %v at index %d, got %v", expected[i], i, v)
-// 		}
-// 	}
-// }
