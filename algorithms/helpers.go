@@ -4,6 +4,7 @@ package algorithms
 import (
 	"errors"
 	"fmt"
+	"math/big"
 )
 
 // Helper functions
@@ -64,6 +65,15 @@ func ModInt(x int64, m int64) int64 {
 		remainder += m
 	}
 	return remainder
+}
+
+func ModBigInt(x, m *big.Int) *big.Int {
+	// Create a new big.Int to hold the result
+	result := new(big.Int).Mod(x, m)
+	if result.Sign() < 0 {
+		result.Add(result, m)
+	}
+	return result
 }
 
 // Power - Computes x^y for uint64

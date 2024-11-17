@@ -4,6 +4,7 @@ package tests
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -91,10 +92,45 @@ func TestByteLen(t *testing.T) {
 }
 
 func TestNUM(t *testing.T) {
-	X := []byte{1, 0, 0, 0, 0, 0, 0, 0}
-	result := algorithms.NUM(X)
-	if result != 128 {
-		t.Errorf("expected %d, got %d", 128, result)
+	tests := []struct {
+		name     string
+		input    []byte
+		expected uint64
+	}{
+		{
+			name:     "Single byte",
+			input:    []byte{128}, // Binary: 10000000
+			expected: 128,
+		},
+		{
+			name:     "Multiple bytes",
+			input:    []byte{195, 184, 41, 161, 232, 100, 43, 120}, // Hex: c3b829a1e8642b78
+			expected: 14103068008476060536,
+		},
+		{
+			name:     "All zero bytes",
+			input:    []byte{0, 0, 0, 0},
+			expected: 0,
+		},
+		{
+			name:     "All one bytes",
+			input:    []byte{255, 255}, // Binary: 11111111 11111111
+			expected: 65535,
+		},
+		{
+			name:     "Sequential bytes",
+			input:    []byte{1, 2, 3, 4}, // Hex: 0x01020304
+			expected: 16909060,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := algorithms.NUM(tc.input)
+			if result != tc.expected {
+				t.Errorf("NUM(%v) = %d, expected %d", tc.input, result, tc.expected)
+			}
+		})
 	}
 }
 
@@ -111,6 +147,15 @@ func TestNUMradix(t *testing.T) {
 		{[]byte{0, 0, 1, 2, 3}, 10, 123},
 		{[]byte{7}, 10, 7},
 		{[]byte{}, 10, 0},
+		{[]byte{1, 2, 3}, 10, 123},
+		{[]byte{0, 0, 1, 2, 3}, 10, 123},
+		{[]byte{7}, 10, 7},
+		{[]byte{}, 10, 0},
+		{[]byte{3, 2, 1}, 4, 57},
+		{[]byte{1, 0, 1, 1}, 2, 11},
+		{[]byte{15, 15, 15}, 16, 4095}, // 0xFFF
+		{[]byte{3, 5, 7}, 100, 30507},
+		{[]byte{255, 255, 255}, 256, 16777215}, // 0xFFFFFF
 	}
 
 	for _, test := range tests {
@@ -380,6 +425,8 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			t.Logf("Converted plaintext = %v", plaintext)
 
 			// Step 3: Perform encryption
+			fmt.Printf("##################\n%s\n##################\n", tc.name)
+			fmt.Printf("Encrypt():\n")
 			ciphertext, err := algorithms.Encrypt(key, tc.tweak, plaintext, tc.radix)
 			if err != nil {
 				t.Fatalf("Encryption failed: %v", err)
@@ -394,6 +441,7 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			}
 
 			// Step 5: Perform decryption
+			fmt.Printf("Decrypt():\n")
 			decryptedText, err := algorithms.Decrypt(key, tc.tweak, ciphertext, tc.radix)
 			if err != nil {
 				t.Fatalf("Decryption failed: %v", err)

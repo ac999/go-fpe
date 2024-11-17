@@ -9,8 +9,8 @@ import (
 // NUM - Bit string to uint64 - could be faster by using bit shifting
 func NUM(X []byte) uint64 {
 	x := uint64(0)
-	for _, i := range X {
-		x = 2*x + uint64(i)
+	for _, b := range X {
+		x = (x << 8) | uint64(b) // Shift existing bits left and append the current byte
 	}
 	return x
 }
