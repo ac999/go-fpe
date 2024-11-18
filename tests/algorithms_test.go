@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 
@@ -43,15 +44,63 @@ func TestStringToNumeralSlice(t *testing.T) {
 	}
 }
 
-func TestNumeralSliceToInt(t *testing.T) {
-	numeralSlice := []uint64{7, 4, 11, 11, 14}
-	radix := uint64(26)
-	expected := uint64(7*26*26*26*26 + 4*26*26*26 + 11*26*26 + 11*26 + 14)
-
-	result := algorithms.NumeralSliceToInt(numeralSlice, radix)
-	if *result != expected {
-		t.Errorf("expected %d, got %d", expected, *result)
+func TestBigFloorDiv(t *testing.T) {
+	// Helper to easily convert integers to *big.Int
+	toBigInt := func(x int64) *big.Int {
+		return big.NewInt(x)
 	}
+
+	// Test case 1: General case, 7 / 5
+	result := algorithms.BigFloorDiv(toBigInt(7), toBigInt(5))
+	expected := toBigInt(1) // 7 / 5 = 1 (floor division)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 2: Exact division, 3 / 3
+	result = algorithms.BigFloorDiv(toBigInt(3), toBigInt(3))
+	expected = toBigInt(1) // 3 / 3 = 1
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 3: Negative numbers, -7 / 5
+	result = algorithms.BigFloorDiv(toBigInt(-7), toBigInt(5))
+	expected = toBigInt(-2) // -7 / 5 = -2 (floor division)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 4: Negative numbers, 7 / -5
+	result = algorithms.BigFloorDiv(toBigInt(7), toBigInt(-5))
+	expected = toBigInt(-2) // 7 / -5 = -2 (floor division)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 5: Large numbers
+	result = algorithms.BigFloorDiv(toBigInt(1234567890123456789), toBigInt(1234567890))
+	expected = toBigInt(1000000000) // Expected result for large numbers
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 6: Buffer overflow-like check with very large numbers
+	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(500), nil) // 2^500
+	y := big.NewInt(2)
+	result = algorithms.BigFloorDiv(x, y)
+	expected = new(big.Int).Div(x, y)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 7: Edge case with zero divisor (expecting panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic on division by zero")
+		}
+	}()
+	_ = algorithms.BigFloorDiv(toBigInt(10), toBigInt(0)) // should panic
 }
 
 func TestCeilingDiv(t *testing.T) {
@@ -63,6 +112,52 @@ func TestCeilingDiv(t *testing.T) {
 	if result != 1 {
 		t.Errorf("expected %d, got %d", 1, result)
 	}
+}
+
+func TestBigCeilingDiv(t *testing.T) {
+	// Helper to easily convert integers to *big.Int
+	toBigInt := func(x int64) *big.Int {
+		return big.NewInt(x)
+	}
+
+	// Test case 1: General case, 7 / 5
+	result := algorithms.BigCeilingDiv(toBigInt(7), toBigInt(5))
+	expected := toBigInt(2)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 2: Exact division, 3 / 3
+	result = algorithms.BigCeilingDiv(toBigInt(3), toBigInt(3))
+	expected = toBigInt(1)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 3: Large numbers
+	result = algorithms.BigCeilingDiv(toBigInt(1234567890123456789), toBigInt(1234567890))
+	expected = toBigInt(1000000000)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 4: Buffer overflow-like check
+	// Use a very large number for x and y
+	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(500), nil) // 2^500
+	y := big.NewInt(2)
+	result = algorithms.BigCeilingDiv(x, y)
+	expected = new(big.Int).Div(x, y)
+	if result.Cmp(expected) != 0 {
+		t.Errorf("expected %d, got %d", expected, result)
+	}
+
+	// Test case 5: Edge case with zero divisor
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic on division by zero")
+		}
+	}()
+	_ = algorithms.BigCeilingDiv(toBigInt(10), toBigInt(0)) // should panic
 }
 
 func TestMod(t *testing.T) {

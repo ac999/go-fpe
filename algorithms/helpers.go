@@ -32,20 +32,25 @@ func StringToNumeralSlice(input, alphabet string) ([]byte, error) {
 	return numerals, nil
 }
 
-// NumeralSliceToInt converts a slice of numerals (`[]uint64`) into an integer value based on the given radix.
-// This follows FF1 convention with decreasing order of significance.
-func NumeralSliceToInt(numerals []uint64, radix uint64) *uint64 {
-	result := uint64(0)
-	for _, numeral := range numerals {
-		result = result*radix + numeral
-	}
-	return &result
-}
-
 // Basic Operations and Functions
 
 func FloorDiv(x, y uint64) uint64 {
 	return x / y
+}
+
+// BigFloorDiv returns the floor of x / y for big.Int.
+func BigFloorDiv(x, y *big.Int) *big.Int {
+	quot := new(big.Int).Div(x, y)
+	remainder := new(big.Int).Mod(x, y)
+
+	// Adjust quotient for floor division correctly
+	if remainder.Sign() != 0 && (x.Sign() != y.Sign()) {
+		if x.Cmp(y) > 0 {
+			quot.Sub(quot, big.NewInt(1))
+		}
+	}
+
+	return quot
 }
 
 func CeilingDiv(x, y uint64) uint64 {
@@ -53,6 +58,26 @@ func CeilingDiv(x, y uint64) uint64 {
 		return x / y
 	}
 	return x/y + 1
+}
+
+func BigCeilingDiv(x, y *big.Int) *big.Int {
+	// Calculate the quotient and remainder
+	quot := new(big.Int).Div(x, y)
+	mod := new(big.Int).Mod(x, y)
+
+	fmt.Printf("quot = %v, mod = %v\n", quot, mod)
+
+	// If the remainder is non-zero, check if we need to round up
+	if mod.Sign() != 0 {
+		fmt.Printf("mod sign != 0\n")
+		// Round up if both numbers have the same sign (positive/positive or negative/negative)
+		if (x.Sign() > 0 && y.Sign() > 0) || (x.Sign() < 0 && y.Sign() < 0) {
+			fmt.Printf("numbers same sign\n")
+			quot.Add(quot, big.NewInt(1))
+		}
+	}
+
+	return quot
 }
 
 func Mod(x, m uint64) uint64 {
