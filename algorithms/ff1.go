@@ -9,7 +9,6 @@ import (
 
 func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 	BigRadix := big.NewInt(int64(radix))
-	fmt.Printf("Debug: Initial BigRadix = %v\n", BigRadix)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
