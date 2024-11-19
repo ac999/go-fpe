@@ -776,12 +776,20 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			radix:        10,
 		},
 		{
+			// In example 2 of FF1 samples.pdf the tweak is wrong. Adjusted in this test.
 			name:         "FF1-AES128-Sample2",
 			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3C",
-			tweak:        []byte{39, 38, 37, 36, 35, 34, 33, 32, 31, 30},
+			tweak:        []byte{57, 56, 55, 54, 53, 52, 51, 50, 49, 48},
 			plaintextStr: "0123456789",
 			expectedEnc:  "6124200773",
 			radix:        10,
+		}, {
+			name:         "FF1-AES128-Sample6",
+			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F",
+			tweak:        []byte{55, 55, 55, 55, 112, 113, 114, 115, 55, 55, 55},
+			plaintextStr: "0123456789abcdefghi",
+			expectedEnc:  "xbj3kv35jrawxv32ysr",
+			radix:        36,
 		},
 		// Add more test cases here from FF1samples.pdf
 	}
@@ -793,14 +801,23 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to decode key: %v", err)
 			}
+			var alphabet string
+			switch tc.radix {
+			case 10:
+				alphabet = alphabets["base10"]
+			case 26:
+				alphabet = alphabets["base26"]
+			case 36:
+				alphabet = alphabets["base36"]
 
+			}
 			// Step 2: Convert plaintext and expected ciphertext to numeral slices
-			plaintext, err := algorithms.StringToNumeralSlice(tc.plaintextStr, alphabets["base10"])
+			plaintext, err := algorithms.StringToNumeralSlice(tc.plaintextStr, alphabet)
 			if err != nil {
 				t.Fatalf("Failed to convert plaintext string to numeral slice: %v", err)
 			}
 
-			expectedEnc, err := algorithms.StringToNumeralSlice(tc.expectedEnc, alphabets["base10"])
+			expectedEnc, err := algorithms.StringToNumeralSlice(tc.expectedEnc, alphabet)
 			if err != nil {
 				t.Fatalf("Failed to convert expected ciphertext string to numeral slice: %v", err)
 			}
