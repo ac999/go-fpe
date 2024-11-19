@@ -115,49 +115,61 @@ func TestCeilingDiv(t *testing.T) {
 }
 
 func TestBigCeilingDiv(t *testing.T) {
-	// Helper to easily convert integers to *big.Int
 	toBigInt := func(x int64) *big.Int {
 		return big.NewInt(x)
 	}
 
-	// Test case 1: General case, 7 / 5
-	result := algorithms.BigCeilingDiv(toBigInt(7), toBigInt(5))
-	expected := toBigInt(2)
-	if result.Cmp(expected) != 0 {
-		t.Errorf("expected %d, got %d", expected, result)
+	tests := []struct {
+		x, y, expected int64
+	}{
+		// General positive division
+		{7, 5, 2},
+		{3, 3, 1},
+		{1234567890123456789, 1234567890, 1000000001},
+
+		// Negative dividend
+		{-7, 5, -1},
+		{-15, 5, -3},
+		{-7, -5, 2},
+		{-15, -5, 3},
+
+		// Mixed signs
+		{7, -5, -1},
+		{-7, 5, -1},
+		{15, -5, -3},
+		{-15, 5, -3},
+
+		// Zero dividend
+		{0, 1, 0},
 	}
 
-	// Test case 2: Exact division, 3 / 3
-	result = algorithms.BigCeilingDiv(toBigInt(3), toBigInt(3))
-	expected = toBigInt(1)
-	if result.Cmp(expected) != 0 {
-		t.Errorf("expected %d, got %d", expected, result)
+	for _, tt := range tests {
+		x := toBigInt(tt.x)
+		y := toBigInt(tt.y)
+		expected := toBigInt(tt.expected)
+
+		result := algorithms.BigCeilingDiv(x, y)
+		if result.Cmp(expected) != 0 {
+			t.Errorf("BigCeilingDiv(%d, %d) = %d, want %d", tt.x, tt.y, result, expected)
+		}
 	}
 
-	// Test case 3: Large numbers
-	result = algorithms.BigCeilingDiv(toBigInt(1234567890123456789), toBigInt(1234567890))
-	expected = toBigInt(1000000000)
-	if result.Cmp(expected) != 0 {
-		t.Errorf("expected %d, got %d", expected, result)
-	}
-
-	// Test case 4: Buffer overflow-like check
-	// Use a very large number for x and y
+	// Edge case: Buffer overflow-like check
 	x := new(big.Int).Exp(big.NewInt(2), big.NewInt(500), nil) // 2^500
 	y := big.NewInt(2)
-	result = algorithms.BigCeilingDiv(x, y)
-	expected = new(big.Int).Div(x, y)
+	result := algorithms.BigCeilingDiv(x, y)
+	expected := new(big.Int).Div(x, y)
 	if result.Cmp(expected) != 0 {
 		t.Errorf("expected %d, got %d", expected, result)
 	}
 
-	// Test case 5: Edge case with zero divisor
+	// Edge case: Division by zero
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("expected panic on division by zero")
 		}
 	}()
-	_ = algorithms.BigCeilingDiv(toBigInt(10), toBigInt(0)) // should panic
+	_ = algorithms.BigCeilingDiv(toBigInt(10), toBigInt(0)) // Should panic
 }
 
 func TestMod(t *testing.T) {
@@ -178,11 +190,97 @@ func TestModInt(t *testing.T) {
 	}
 }
 
+func TestBigMod(t *testing.T) {
+	// Helper to convert int64 to *big.Int
+	toBigInt := func(x int64) *big.Int {
+		return big.NewInt(x)
+	}
+
+	// Test cases for signed modulus with *big.Int
+	tests := []struct {
+		x, m, expected int64
+	}{
+		{-3, 7, 4},   // -3 % 7 = 4
+		{-4, 16, 12}, // -4 % 16 = 12
+		{10, 3, 1},   // 10 % 3 = 1
+		{-15, 6, 3},  // -15 % 6 = 3
+		{13, 7, 6},   // 13 % 7 = 6
+		{100, 6, 4},  // 100 % 6 = 4
+		{7, 5, 2},    // 7 % 5 = 2
+		{1234567890123456789, 1234567890, 123456789}, // Large case
+	}
+
+	for _, tt := range tests {
+		x := toBigInt(tt.x)
+		m := toBigInt(tt.m)
+		expected := toBigInt(tt.expected)
+
+		result := algorithms.BigMod(x, m)
+		if result.Cmp(expected) != 0 {
+			t.Errorf("BigMod(%d, %d) = %d, want %d", tt.x, tt.m, result, expected)
+		}
+	}
+}
+
+func TestBigPower(t *testing.T) {
+	// Helper to convert int64 to *big.Int
+	toBigInt := func(x int64) *big.Int {
+		return big.NewInt(x)
+	}
+
+	tests := []struct {
+		x, y int64
+		want string
+	}{
+		// Simple cases
+		{2, 0, "1"},
+		{2, 1, "2"},
+		{2, 2, "4"},
+		{3, 3, "27"},
+		{5, 5, "3125"},
+		{10, 10, "10000000000"},
+		{7, 8, "5764801"},
+		// Large number case
+		{12345, 6, "3539537889086624823140625"},
+		{9876, 5, "93951865167752549376"},
+	}
+
+	for _, tt := range tests {
+		t.Run("Testing BigPower", func(t *testing.T) {
+			got := algorithms.BigPower(toBigInt(tt.x), toBigInt(tt.y)).String()
+			if got != tt.want {
+				t.Errorf("BigPower(%d, %d) = %v; want %v", tt.x, tt.y, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestByteLen(t *testing.T) {
 	x := []byte{1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0}
 	result := algorithms.ByteLen(x)
 	if result != 2 {
 		t.Errorf("expected %d, got %d", 2, result)
+	}
+}
+
+func TestBigByteLen(t *testing.T) {
+	tests := []struct {
+		x    []byte
+		want string
+	}{
+		{[]byte{1, 2, 3, 4}, "0"},                                            // 4 bytes => 4 / 8 = 0 8-bit units
+		{[]byte{1, 2, 3, 4, 5, 6, 7, 8}, "1"},                                // 8 bytes => 8 / 8 = 1 8-bit unit
+		{[]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, "1"},                         // 10 bytes => 10 / 8 = 1 8-bit unit
+		{[]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}, "2"}, // 16 bytes => 16 / 8 = 2 8-bit units
+	}
+
+	for _, tt := range tests {
+		t.Run("Testing ByteLen", func(t *testing.T) {
+			got := algorithms.BigByteLen(tt.x).String()
+			if got != tt.want {
+				t.Errorf("ByteLen(%v) = %v; want %v", tt.x, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -229,6 +327,77 @@ func TestNUM(t *testing.T) {
 	}
 }
 
+func TestBigNUM(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []byte
+		expected *big.Int
+	}{
+		{
+			name:     "Single byte",
+			input:    []byte{128}, // Binary: 10000000
+			expected: big.NewInt(128),
+		},
+		{
+			name:     "Multiple bytes",
+			input:    []byte{195, 184, 41, 161, 232, 100, 43, 120}, // Hex: c3b829a1e8642b78
+			expected: new(big.Int).SetBytes([]byte{195, 184, 41, 161, 232, 100, 43, 120}),
+		},
+		{
+			name:     "All zero bytes",
+			input:    []byte{0, 0, 0, 0},
+			expected: big.NewInt(0),
+		},
+		{
+			name:     "All one bytes",
+			input:    []byte{255, 255}, // Binary: 11111111 11111111
+			expected: big.NewInt(65535),
+		},
+		{
+			name:     "Sequential bytes",
+			input:    []byte{1, 2, 3, 4}, // Hex: 0x01020304
+			expected: big.NewInt(16909060),
+		},
+
+		// Larger test cases with more bytes
+		{
+			name:     "Large number 1",
+			input:    []byte{255, 255, 255, 255, 255, 255, 255, 255},                        // Large hex number
+			expected: new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255}), // 0xFFFFFFFFFFFFFFFF
+		},
+		{
+			name:     "Large number 2",
+			input:    []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}, // Even larger hex number
+			expected: new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
+		},
+		{
+			name:     "Very large number",
+			input:    []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}, // Larger hex number
+			expected: new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
+		},
+		{
+			name:     "Large number with mixed bytes",
+			input:    []byte{1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0}, // Mixed byte sequence
+			expected: new(big.Int).SetBytes([]byte{1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0}),
+		},
+		{
+			name:     "Huge number",
+			input:    []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
+			expected: new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := algorithms.BigNUM(tc.input)
+			// Compare the result with the expected value using Cmp (for big.Int comparison)
+			if result.Cmp(tc.expected) != 0 {
+				t.Errorf("NUM(%v) = %s, expected %s", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
 func TestNUMradix(t *testing.T) {
 	tests := []struct {
 		X        []byte
@@ -258,6 +427,86 @@ func TestNUMradix(t *testing.T) {
 		if result != test.expected {
 			t.Errorf("For input X=%v and radix=%d, expected %d, but got %d", test.X, test.radix, test.expected, result)
 		}
+	}
+}
+
+func TestBigNUMradix(t *testing.T) {
+	tests := []struct {
+		X        []byte
+		radix    uint64
+		expected *big.Int
+	}{
+		{
+			X:        []byte{0, 0, 0, 1, 1, 0, 1, 0},
+			radix:    5,
+			expected: big.NewInt(755),
+		},
+		{
+			X:        []byte{1, 0, 1, 1},
+			radix:    2,
+			expected: big.NewInt(11),
+		},
+		{
+			X:        []byte{3, 2, 1},
+			radix:    4,
+			expected: big.NewInt(57),
+		},
+		{
+			X:        []byte{1, 2, 3},
+			radix:    10,
+			expected: big.NewInt(123),
+		},
+		{
+			X:        []byte{0, 0, 1, 2, 3},
+			radix:    10,
+			expected: big.NewInt(123),
+		},
+		{
+			X:        []byte{7},
+			radix:    10,
+			expected: big.NewInt(7),
+		},
+		{
+			X:        []byte{},
+			radix:    10,
+			expected: big.NewInt(0),
+		},
+		{
+			X:        []byte{15, 15, 15},
+			radix:    16,
+			expected: big.NewInt(4095), // 0xFFF
+		},
+		{
+			X:        []byte{3, 5, 7},
+			radix:    100,
+			expected: big.NewInt(30507),
+		},
+		{
+			X:        []byte{255, 255, 255},
+			radix:    256,
+			expected: big.NewInt(16777215), // 0xFFFFFF
+		},
+		// Test larger numbers
+		{
+			X:        []byte{255, 255, 255, 255, 255, 255, 255, 255},
+			radix:    256,
+			expected: new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255}),
+		},
+		{
+			X:        []byte{1, 2, 3, 4, 5, 6, 7, 8},
+			radix:    10,
+			expected: big.NewInt(12345678),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			result := algorithms.BigNUMradix(tc.X, tc.radix)
+			// Compare the result with the expected value using Cmp (for big.Int comparison)
+			if result.Cmp(tc.expected) != 0 {
+				t.Errorf("BigNUMradix(%v, %d) = %s, expected %s", tc.X, tc.radix, result, tc.expected)
+			}
+		})
 	}
 }
 
@@ -347,6 +596,7 @@ func TestSTRmRadix(t *testing.T) {
 		{255, 16, 2, []byte{15, 15}},
 		{1024, 2, 11, []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
 		{123, 10, 3, []byte{1, 2, 3}},
+		{0, 256, 10, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
 	}
 
 	for _, test := range tests {
@@ -360,6 +610,67 @@ func TestSTRmRadix(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestBigSTRmRadix(t *testing.T) {
+	tests := []struct {
+		x        *big.Int
+		radix    uint64
+		m        int64
+		expected []byte
+	}{
+		{
+			x:        big.NewInt(559),
+			radix:    12,
+			m:        4,
+			expected: []byte{0, 3, 10, 7},
+		},
+		{
+			x:        big.NewInt(1),
+			radix:    2,
+			m:        8,
+			expected: []byte{0, 0, 0, 0, 0, 0, 0, 1},
+		},
+		{
+			x:        big.NewInt(255),
+			radix:    16,
+			m:        2,
+			expected: []byte{15, 15},
+		},
+		{
+			x:        big.NewInt(1024),
+			radix:    2,
+			m:        11,
+			expected: []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			x:        big.NewInt(123),
+			radix:    10,
+			m:        3,
+			expected: []byte{1, 2, 3},
+		},
+		{
+			x:        big.NewInt(0),
+			radix:    256,
+			m:        10,
+			expected: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			result := algorithms.BigSTRmRadix(test.x, test.radix, test.m)
+			if len(result) != len(test.expected) {
+				t.Errorf("BigSTRmRadix() length = %v, expected %v", len(result), len(test.expected))
+			} else {
+				for i := range result {
+					if result[i] != test.expected[i] {
+						t.Errorf("BigSTRmRadix() result at index %v = %v, expected %v", i, result[i], test.expected[i])
+					}
+				}
+			}
+		})
 	}
 }
 

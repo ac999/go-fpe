@@ -8,6 +8,8 @@ import (
 )
 
 func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
+	BigRadix := big.NewInt(int64(radix))
+	fmt.Printf("Debug: Initial BigRadix = %v\n", BigRadix)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -26,7 +28,10 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 	fmt.Printf("Step 2: A is %v\nB is %v\n", A, B)
 
 	// Step 3
-	b := CeilingDiv(uint64(math.Ceil(float64(v)*math.Log2(float64(radix)))), 8)
+	// Calculate log2(radix):
+	log2Radix := math.Log2(float64(radix))
+
+	b := CeilingDiv(uint64(math.Ceil(float64(v)*log2Radix)), 8)
 	fmt.Printf("Step 3: b is %v\n", b)
 
 	// Step 4
@@ -35,20 +40,27 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 
 	// Step 5
 	P := []byte{1, 2, 1}
-	P = append(P, STRmRadix(radix, 256, 3)...)
-	P = append(P, STRmRadix(10, 256, 1)...)
-	P = append(P, STRmRadix(Mod(u, 256), 256, 1)...)
-	P = append(P, STRmRadix(n, 256, 4)...)
-	P = append(P, STRmRadix(t, 256, 4)...)
+	P = append(P, BigSTRmRadix(BigRadix, 256, 3)...)
+	P = append(P, BigSTRmRadix(big.NewInt(10), 256, 1)...)
+	P = append(P, BigSTRmRadix(new(big.Int).SetUint64(Mod(u, 256)), 256, 1)...)
+	P = append(P, BigSTRmRadix(new(big.Int).SetUint64(n), 256, 4)...)
+	P = append(P, BigSTRmRadix(new(big.Int).SetUint64(t), 256, 4)...)
 	fmt.Printf("Step 5: P is %v\n", P)
 	// Step 6
-	for i := 0; i < 10; i++ {
+	for i := int64(0); i < 10; i++ {
 		fmt.Printf("\nRound #%v\n", i)
 		// Step 6.i
 		Q := tweak
-		Q = append(Q, STRmRadix(0, 256, ModInt(0-int64(t)-int64(b)-1, 16))...)
-		Q = append(Q, STRmRadix(uint64(i), 256, 1)...)
-		Q = append(Q, STRmRadix(NUMradix(B, radix), 256, int64(b))...)
+		fmt.Printf("Debug: Q = %v\n", Q)
+		Q = append(Q, BigSTRmRadix(big.NewInt(0), 256, ModInt(16-int64(t)-int64(b)-1, 16))...)
+		fmt.Printf("Debug: t = %v\n", t)
+		fmt.Printf("Debug: b = %v\n", b)
+		fmt.Printf("Debug: 16-t-v-1 = %v\n", 16-t-v-1)
+		fmt.Printf("Debug: Q = %v\n", Q)
+		Q = append(Q, BigSTRmRadix(big.NewInt(i), 256, 1)...)
+		fmt.Printf("Debug: Q = %v\n", Q)
+		Q = append(Q, BigSTRmRadix(BigNUMradix(B, radix), 256, int64(b))...)
+		fmt.Printf("Debug: Q = %v\n", Q)
 
 		fmt.Printf("Step 6.i Q is %v\n", Q)
 
@@ -67,7 +79,7 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 		fmt.Printf("Step 6.iii: S = R in hex format: %x\n", S)
 
 		for j := uint64(1); j < CeilingDiv(d, 16); j++ {
-			RxorJ, err := XORBytes(R, STRmRadix(j, 256, 16))
+			RxorJ, err := XORBytes(R, BigSTRmRadix(new(big.Int).SetUint64(j), 256, 16))
 			fmt.Printf("Step 6.iii iteration %v Step 1: RxorJ is %v\n", j, RxorJ)
 
 			if err != nil {
@@ -85,24 +97,35 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 		fmt.Printf("Step 6.iii Final S in hex is %x\n", S)
 
 		// Step 6.iv
-		y := NUM(S)
+		y := BigNUM(S)
 		fmt.Printf("Step 6.iv y is %v\n", y)
 
 		// Step 6.v
+		mBig := new(big.Int).SetUint64(v)
 		m := int64(v)
 		if i%2 == 0 {
+			mBig = new(big.Int).SetUint64(u)
 			m = int64(u)
 		}
 
 		fmt.Printf("Step 6.v m is %v\n", m)
+		fmt.Printf("Step 6.v Debug: bigM is %v\n", mBig)
 
 		// Step 6.vi
-		c := Mod(NUMradix(A, radix)+y, Power(radix, uint64(m)))
+		fmt.Printf("Debug: BigRadix = %v\n", BigRadix)
+		BigAplusY := BigNUMradix(A, radix)
+		fmt.Printf("debug: bignumradix(A,radix) = %v\n", BigAplusY)
+		BigAplusY = BigAplusY.Add(BigAplusY, y)
+		fmt.Printf("debug: numradix(a) + y = %v\n", BigAplusY)
+		radixAtM := BigPower(BigRadix, mBig)
+		fmt.Printf("debug: radixAtM = %v\n", radixAtM)
+		c := BigMod(BigAplusY, radixAtM)
+		fmt.Printf("debug: c = %v\n", c)
 
 		fmt.Printf("Step 6.vi c is %v\n", c)
 
 		// Step 6.vii
-		C := STRmRadix(c, radix, m)
+		C := BigSTRmRadix(c, radix, m)
 
 		fmt.Printf("Step 6.vii C is %v\n", C)
 
@@ -123,6 +146,7 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 }
 
 func Decrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
+	BigRadix := big.NewInt(int64(radix))
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -139,31 +163,31 @@ func Decrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 	fmt.Printf("Step 2: A is %v\nB is %v\n", A, B)
 
 	// Step 3
-	b := CeilingDiv(uint64(math.Ceil(float64(v)*math.Log2(float64(radix)))), 8)
-	fmt.Printf("Step 3: b is %v\n", b)
+	// Calculate log2(radix):
+	log2Radix := math.Log2(float64(radix))
+
+	b := CeilingDiv(uint64(math.Ceil(float64(v)*log2Radix)), 8)
 
 	// Step 4
 	d := 4*CeilingDiv(b, 4) + 4
 	fmt.Printf("Step 4: d is %v\n", d)
 
 	// Step 5
-	P := STRmRadix(1, 256, 1)
-	P = append(P, STRmRadix(2, 256, 1)...)
-	P = append(P, STRmRadix(1, 256, 1)...)
-	P = append(P, STRmRadix(radix, 256, 3)...)
-	P = append(P, STRmRadix(10, 256, 1)...)
-	P = append(P, STRmRadix(Mod(u, 256), 256, 1)...)
-	P = append(P, STRmRadix(n, 256, 4)...)
-	P = append(P, STRmRadix(t, 256, 4)...)
+	P := []byte{1, 2, 1}
+	P = append(P, BigSTRmRadix(BigRadix, 256, 3)...)
+	P = append(P, BigSTRmRadix(big.NewInt(10), 256, 1)...)
+	P = append(P, BigSTRmRadix(new(big.Int).SetUint64(Mod(u, 256)), 256, 1)...)
+	P = append(P, BigSTRmRadix(new(big.Int).SetUint64(n), 256, 4)...)
+	P = append(P, BigSTRmRadix(new(big.Int).SetUint64(t), 256, 4)...)
 	fmt.Printf("Step 5: P is %v\n", P)
 	// Step 6
-	for i := 9; i >= 0; i-- {
+	for i := int64(9); i >= 0; i-- {
 		fmt.Printf("\nRound #%v\n", i)
 		// Step 6.i
 		Q := tweak
-		Q = append(Q, STRmRadix(0, 256, ModInt(0-int64(t)-int64(b)-1, 16))...)
-		Q = append(Q, STRmRadix(uint64(i), 256, 1)...)
-		Q = append(Q, STRmRadix(NUMradix(A, radix), 256, int64(b))...)
+		Q = append(Q, BigSTRmRadix(big.NewInt(0), 256, ModInt(0-int64(t)-int64(b)-1, 16))...)
+		Q = append(Q, BigSTRmRadix(big.NewInt(i), 256, 1)...)
+		Q = append(Q, BigSTRmRadix(BigNUMradix(A, radix), 256, int64(b))...)
 
 		fmt.Printf("Step 6.i Q is %v\n", Q)
 
@@ -182,7 +206,7 @@ func Decrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 		fmt.Printf("Step 6.iii: S = R in hex format: %x\n", S)
 
 		for j := uint64(1); j < CeilingDiv(d, 16); j++ {
-			RxorJ, err := XORBytes(R, STRmRadix(j, 256, 16))
+			RxorJ, err := XORBytes(R, BigSTRmRadix(new(big.Int).SetUint64(j), 256, 16))
 			fmt.Printf("Step 6.iii iteration %v Step 1: RxorJ is %v\n", j, RxorJ)
 
 			if err != nil {
@@ -197,36 +221,29 @@ func Decrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 		fmt.Printf("Step 6.iii Final S in hex is %x\n", S)
 
 		// Step 6.iv
-		y := NUM(S)
+		y := BigNUM(S)
 		fmt.Printf("Step 6.iv y is %v\n", y)
 
 		// Step 6.v
+		mBig := new(big.Int).SetUint64(v)
 		m := int64(v)
 		if i%2 == 0 {
+			mBig = new(big.Int).SetUint64(u)
 			m = int64(u)
 		}
 
 		fmt.Printf("Step 6.v m is %v\n", m)
 
-		fmt.Printf("Step 6.vi power radix ^ m is %d\n", int64(Power(radix, uint64(m))))
-		fmt.Printf("Step 6.vi numradix(b) is %d\n", int64(NUMradix(B, radix)))
-		fmt.Printf("Step 6.vi numradix(b) - y is %d", int64(int64(NUMradix(B, radix))-int64(y)))
-
 		// Step 6.vi
 
-		// Extra steps to avoid overflows:
-		numB := big.NewInt(0).SetUint64(NUMradix(B, radix))
-		yBig := big.NewInt(0).SetUint64(y)
-		cBig := new(big.Int).Sub(numB, yBig)
-		powerRadixBig := big.NewInt(0).SetUint64(Power(radix, uint64(m)))
-		cBig = ModBigInt(cBig, powerRadixBig)
-
-		c := cBig.Uint64()
+		BigBminusY := BigNUMradix(B, radix)
+		BigBminusY = BigBminusY.Sub(BigBminusY, y)
+		c := BigMod(BigBminusY, BigPower(BigRadix, mBig))
 
 		fmt.Printf("Step 6.vi c is %v\n", c)
 
 		// Step 6.vii
-		C := STRmRadix(c, radix, m)
+		C := BigSTRmRadix(c, radix, m)
 
 		fmt.Printf("Step 6.vii C is %v\n", C)
 

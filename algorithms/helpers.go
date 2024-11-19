@@ -61,18 +61,20 @@ func CeilingDiv(x, y uint64) uint64 {
 }
 
 func BigCeilingDiv(x, y *big.Int) *big.Int {
-	// Calculate the quotient and remainder
+	if y.Sign() == 0 {
+		panic("division by zero")
+	}
+
+	// Calculate quotient and remainder using Euclidean division
 	quot := new(big.Int).Div(x, y)
 	mod := new(big.Int).Mod(x, y)
 
-	fmt.Printf("quot = %v, mod = %v\n", quot, mod)
-
-	// If the remainder is non-zero, check if we need to round up
+	// Adjust for ceiling behavior
 	if mod.Sign() != 0 {
-		fmt.Printf("mod sign != 0\n")
-		// Round up if both numbers have the same sign (positive/positive or negative/negative)
-		if (x.Sign() > 0 && y.Sign() > 0) || (x.Sign() < 0 && y.Sign() < 0) {
-			fmt.Printf("numbers same sign\n")
+		// Rounding up when:
+		// - Both x and y are positive, or
+		// - x is negative and y is positive (rounding towards zero)
+		if (x.Sign() > 0 && y.Sign() > 0) || (x.Sign() < 0 && y.Sign() > 0) {
 			quot.Add(quot, big.NewInt(1))
 		}
 	}
@@ -92,12 +94,17 @@ func ModInt(x int64, m int64) int64 {
 	return remainder
 }
 
-func ModBigInt(x, m *big.Int) *big.Int {
-	// Create a new big.Int to hold the result
-	result := new(big.Int).Mod(x, m)
+// BigMod calculates x % m using Euclidean modulus with *big.Int
+func BigMod(x, m *big.Int) *big.Int {
+	// Perform the modulus operation
+	result := new(big.Int)
+	result.Mod(x, m)
+
+	// Ensure the result is in the range [0, |m|) (Euclidean modulus)
 	if result.Sign() < 0 {
 		result.Add(result, m)
 	}
+
 	return result
 }
 
@@ -110,8 +117,29 @@ func Power(x, y uint64) uint64 {
 	return result
 }
 
+func BigPower(x, y *big.Int) *big.Int {
+	result := big.NewInt(1) // Start with 1 as the result
+	for i := big.NewInt(0); i.Cmp(y) < 0; i.Add(i, big.NewInt(1)) {
+		result.Mul(result, x) // Multiply result by x each iteration
+	}
+	return result
+}
+
 func ByteLen(x []byte) uint64 {
 	return uint64(len(x) / 8)
+}
+
+func BigByteLen(x []byte) *big.Int {
+	// Get the length of the byte slice
+	byteLength := len(x)
+
+	// Convert the byte length to a big.Int
+	bigLen := new(big.Int).SetUint64(uint64(byteLength))
+
+	// Divide by 8 (since we're converting byte length to 8-bit units)
+	bigLen.Div(bigLen, big.NewInt(8))
+
+	return bigLen
 }
 
 // BreakInBlocks splits a byte slice into blocks of a specified size.
@@ -137,18 +165,4 @@ func XORBytes(a, b []byte) ([]byte, error) {
 		result[i] = a[i] ^ b[i]
 	}
 	return result, nil
-}
-
-func Pad(x, m uint64) []byte {
-	result := make([]byte, m)
-	result[m-1] = byte(x)
-	return result
-}
-
-func BytesToUint64Array(data []byte) []uint64 {
-	result := make([]uint64, len(data))
-	for i, v := range data {
-		result[i] = uint64(v)
-	}
-	return result
 }
