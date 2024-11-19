@@ -51,16 +51,9 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 		fmt.Printf("\nRound #%v\n", i)
 		// Step 6.i
 		Q := tweak
-		fmt.Printf("Debug: Q = %v\n", Q)
 		Q = append(Q, BigSTRmRadix(big.NewInt(0), 256, ModInt(16-int64(t)-int64(b)-1, 16))...)
-		fmt.Printf("Debug: t = %v\n", t)
-		fmt.Printf("Debug: b = %v\n", b)
-		fmt.Printf("Debug: 16-t-v-1 = %v\n", 16-t-v-1)
-		fmt.Printf("Debug: Q = %v\n", Q)
 		Q = append(Q, BigSTRmRadix(big.NewInt(i), 256, 1)...)
-		fmt.Printf("Debug: Q = %v\n", Q)
 		Q = append(Q, BigSTRmRadix(BigNUMradix(B, radix), 256, int64(b))...)
-		fmt.Printf("Debug: Q = %v\n", Q)
 
 		fmt.Printf("Step 6.i Q is %v\n", Q)
 
@@ -109,18 +102,12 @@ func Encrypt(key []byte, tweak []byte, X []byte, radix uint64) ([]byte, error) {
 		}
 
 		fmt.Printf("Step 6.v m is %v\n", m)
-		fmt.Printf("Step 6.v Debug: bigM is %v\n", mBig)
 
 		// Step 6.vi
-		fmt.Printf("Debug: BigRadix = %v\n", BigRadix)
 		BigAplusY := BigNUMradix(A, radix)
-		fmt.Printf("debug: bignumradix(A,radix) = %v\n", BigAplusY)
 		BigAplusY = BigAplusY.Add(BigAplusY, y)
-		fmt.Printf("debug: numradix(a) + y = %v\n", BigAplusY)
 		radixAtM := BigPower(BigRadix, mBig)
-		fmt.Printf("debug: radixAtM = %v\n", radixAtM)
 		c := BigMod(BigAplusY, radixAtM)
-		fmt.Printf("debug: c = %v\n", c)
 
 		fmt.Printf("Step 6.vi c is %v\n", c)
 

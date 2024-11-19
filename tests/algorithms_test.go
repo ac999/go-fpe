@@ -188,6 +188,14 @@ func TestModInt(t *testing.T) {
 	if result != 12 {
 		t.Errorf("expected %d, got %d", 12, result)
 	}
+	result = algorithms.ModInt(13, 7)
+	if result != 6 {
+		t.Errorf("expected %d, got %d", 6, result)
+	}
+	result = algorithms.ModInt(-6, 16)
+	if result != 10 {
+		t.Errorf("expected %d, got %d", 10, result)
+	}
 }
 
 func TestBigMod(t *testing.T) {
@@ -770,9 +778,9 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 		{
 			name:         "FF1-AES128-Sample2",
 			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3C",
-			tweak:        []byte{},
-			plaintextStr: "9876543210",
-			expectedEnc:  "5868123250",
+			tweak:        []byte{39, 38, 37, 36, 35, 34, 33, 32, 31, 30},
+			plaintextStr: "0123456789",
+			expectedEnc:  "6124200773",
 			radix:        10,
 		},
 		// Add more test cases here from FF1samples.pdf
