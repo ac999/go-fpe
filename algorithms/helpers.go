@@ -32,6 +32,29 @@ func StringToNumeralSlice(input, alphabet string) ([]byte, error) {
 	return numerals, nil
 }
 
+func NumeralSliceToString(numerals []byte, alphabet string) (string, error) {
+	// Validate the alphabet
+	alphabetLength := len(alphabet)
+	if alphabetLength == 0 {
+		return "", errors.New("alphabet cannot be empty")
+	}
+
+	// Ensure all numerals are valid indices within the alphabet
+	for _, numeral := range numerals {
+		if int(numeral) >= alphabetLength {
+			return "", errors.New("numerals contain invalid indices for the alphabet")
+		}
+	}
+
+	// Convert numerals to their corresponding characters
+	result := make([]rune, len(numerals))
+	for i, numeral := range numerals {
+		result[i] = rune(alphabet[numeral])
+	}
+
+	return string(result), nil
+}
+
 // Basic Operations and Functions
 
 func FloorDiv(x, y uint64) uint64 {

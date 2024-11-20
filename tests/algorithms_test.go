@@ -802,6 +802,15 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			expectedEnc:  "5055966384254029",
 			radix:        10,
 		},
+		{
+			// Vehicle Number Plate example
+			name:         "FF1-AES128-VehicleNumberPlate",
+			keyHex:       "706F6C6974696174726563656E696E6F",
+			tweak:        []byte{},
+			plaintextStr: "is01mai",
+			expectedEnc:  "y8u7ykm",
+			radix:        36,
+		},
 
 		// Add more test cases here from FF1samples.pdf
 	}
@@ -848,6 +857,12 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			// Debugging: Print encryption result
 			t.Logf("Ciphertext = %v (expected: %v)", ciphertext, expectedEnc)
 
+			expectedCiphertextStr, err := algorithms.NumeralSliceToString(ciphertext, alphabet)
+			if err != nil {
+				t.Fatalf("Failed to convert expected ciphertext string to numeral slice: %v", err)
+			}
+			t.Logf("Decrypted plaintext as string = %v", expectedCiphertextStr)
+
 			// Step 4: Validate encryption result
 			if !reflect.DeepEqual(ciphertext, expectedEnc) {
 				t.Errorf("Encrypt() result = %v, expected %v", ciphertext, expectedEnc)
@@ -862,6 +877,12 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 
 			// Debugging: Print decryption result
 			t.Logf("Decrypted plaintext = %v (expected: %v)", decryptedText, plaintext)
+
+			expectedDecStr, err := algorithms.NumeralSliceToString(decryptedText, alphabet)
+			if err != nil {
+				t.Fatalf("Failed to convert expected ciphertext string to numeral slice: %v", err)
+			}
+			t.Logf("Decrypted plaintext as string = %v", expectedDecStr)
 
 			// Step 6: Validate decryption result
 			if !reflect.DeepEqual(decryptedText, plaintext) {
