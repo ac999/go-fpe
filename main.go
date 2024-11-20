@@ -86,17 +86,12 @@ func FF1decrypt(key, tweak, X []byte, radix uint64) ([]byte, error) {
 }
 
 // Benchmark Encryption and Decryption for both AES-CBC and Custom
-func benchmarkEncryptionsDecryption(numRuns int) ([]float64, []float64, []float64, []float64) {
+func benchmarkEncryptionsDecryption(X []byte, keyHex string, tweak []byte, radix uint64, numRuns int) ([]float64, []float64, []float64, []float64) {
 	// Example input data
-	keyHex := "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F"
 	key, err := hex.DecodeString(keyHex)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	tweak := []byte{55, 55, 55, 55, 112, 113, 114, 115, 55, 55, 55}
-	X := []byte("0123456789abcdefghi")
-	radix := uint64(10)
 
 	// Collect encryption and decryption times for AES and custom encryption
 	var aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []float64
@@ -108,7 +103,7 @@ func benchmarkEncryptionsDecryption(numRuns int) ([]float64, []float64, []float6
 		if err != nil {
 			log.Fatal(err)
 		}
-		aesEncDuration := time.Since(start).Seconds() * 1000 // milliseconds
+		aesEncDuration := time.Since(start).Seconds() * 1000000000 // nanoseconds
 		aesEncTimes = append(aesEncTimes, aesEncDuration)
 
 		// Measure custom encryption time
@@ -117,7 +112,7 @@ func benchmarkEncryptionsDecryption(numRuns int) ([]float64, []float64, []float6
 		if err != nil {
 			log.Fatal(err)
 		}
-		customEncDuration := time.Since(start).Seconds() * 1000 // milliseconds
+		customEncDuration := time.Since(start).Seconds() * 1000000000 // nanoseconds
 		customEncTimes = append(customEncTimes, customEncDuration)
 
 		// Measure AES decryption time
@@ -175,7 +170,7 @@ func saveTimesToCSV(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []f
 }
 
 // Plot the comparison between AES-CBC and FF1 encryption and decryption times
-func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []float64) {
+func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []float64, filename string) {
 	// Prepare data for the plot
 	aesEncData := make(plotter.XYs, len(aesEncTimes))
 	customEncData := make(plotter.XYs, len(customEncTimes))
@@ -210,7 +205,7 @@ func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []f
 		log.Fatal(err)
 	}
 	aesEncLine.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255} // Red for AES-CBC Encryption
-	aesEncLine.LineStyle.Width = vg.Points(1.5)
+	aesEncLine.LineStyle.Width = vg.Points(0.5)
 	aesEncLine.LineStyle.Dashes = []vg.Length{vg.Points(5), vg.Points(5)}
 
 	aesDecLine, err := plotter.NewLine(aesDecData)
@@ -218,7 +213,7 @@ func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []f
 		log.Fatal(err)
 	}
 	aesDecLine.Color = color.RGBA{R: 255, G: 165, B: 0, A: 255} // Orange for AES-CBC Decryption
-	aesDecLine.LineStyle.Width = vg.Points(1.5)
+	aesDecLine.LineStyle.Width = vg.Points(0.5)
 
 	// Create line plots for FF1 encryption and decryption
 	customEncLine, err := plotter.NewLine(customEncData)
@@ -226,7 +221,7 @@ func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []f
 		log.Fatal(err)
 	}
 	customEncLine.Color = color.RGBA{B: 255, A: 255} // Blue for FF1 Encryption
-	customEncLine.LineStyle.Width = vg.Points(1.5)
+	customEncLine.LineStyle.Width = vg.Points(0.5)
 	customEncLine.LineStyle.Dashes = []vg.Length{vg.Points(3), vg.Points(3)}
 
 	customDecLine, err := plotter.NewLine(customDecData)
@@ -234,7 +229,7 @@ func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []f
 		log.Fatal(err)
 	}
 	customDecLine.Color = color.RGBA{G: 255, B: 128, A: 255} // Green for FF1 Decryption
-	customDecLine.LineStyle.Width = vg.Points(1.5)
+	customDecLine.LineStyle.Width = vg.Points(0.5)
 
 	// Add the lines to the plot
 	p.Add(aesEncLine, aesDecLine, customEncLine, customDecLine)
@@ -247,7 +242,7 @@ func plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []f
 	p.Legend.Top = true
 
 	// Save the plot to a PNG file
-	if err := p.Save(8*vg.Inch, 6*vg.Inch, "encryption_decryption_comparison.png"); err != nil {
+	if err := p.Save(8*vg.Inch, 6*vg.Inch, filename); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -323,18 +318,51 @@ func compareTimes(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes []flo
 	fmt.Printf("Decryption Speed Comparison (AES-CBC / FF1): %.4f\n", aesDecMean/customDecMean)
 }
 
+func testRealisticWorkload(filename string, keyHex string, tweak []byte) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("Failed to read file: %v", err)
+	}
+
+	numRuns := 100
+	radix := uint64(36)
+
+	// Benchmark encryption and decryption for the file content
+	aesEncTimes, customEncTimes, aesDecTimes, customDecTimes := benchmarkEncryptionsDecryption(data, keyHex, tweak, radix, numRuns)
+
+	// Save times to CSV
+	saveTimesToCSV(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes, "realistic_workload_times.csv")
+
+	// Plot comparison
+	plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes, "realistic_workload_times.png")
+
+	// Compare encryption and decryption times
+	fmt.Printf("Number of runs: %v\n", numRuns)
+	fmt.Printf("Input size: %v\n", len(data))
+	compareTimes(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes)
+}
+
 func main() {
 	// Benchmark the encryption and decryption
 	numRuns := 100000
-	aesEncTimes, customEncTimes, aesDecTimes, customDecTimes := benchmarkEncryptionsDecryption(numRuns)
+
+	keyHex := "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F"
+	X := []byte("0123456789abcdefghi")
+	tweak := []byte{55, 55, 55, 55, 112, 113, 114, 115, 55, 55, 55}
+	radix := uint64(36)
+
+	aesEncTimes, customEncTimes, aesDecTimes, customDecTimes := benchmarkEncryptionsDecryption(X, keyHex, tweak, radix, numRuns)
 
 	// Save times to CSV
 	saveTimesToCSV(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes, "encryption_decryption_times.csv")
 
 	// Plot the comparison
-	plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes)
+	plotComparison(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes, "encryption_decryption_times.png")
 
 	// Compare encryption and decryption times
-	fmt.Printf("Number of runs: %v", numRuns)
+	fmt.Printf("Number of runs: %v\n", numRuns)
+	fmt.Printf("Input size: %v\n", len(X))
 	compareTimes(aesEncTimes, customEncTimes, aesDecTimes, customDecTimes)
+
+	testRealisticWorkload("35869characterstringradix36.txt", keyHex, tweak)
 }
