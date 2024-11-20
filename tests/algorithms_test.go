@@ -768,6 +768,7 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 		radix        uint64
 	}{
 		{
+			// Example 1 from FF1samples.pd
 			name:         "FF1-AES128-Sample1",
 			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3C",
 			tweak:        []byte{},
@@ -776,7 +777,7 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			radix:        10,
 		},
 		{
-			// In example 2 of FF1 samples.pdf the tweak is wrong. Adjusted in this test.
+			// In example 2 of FF1samples.pdf the tweak is wrong. Adjusted in this test.
 			name:         "FF1-AES128-Sample2",
 			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3C",
 			tweak:        []byte{57, 56, 55, 54, 53, 52, 51, 50, 49, 48},
@@ -784,6 +785,7 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			expectedEnc:  "6124200773",
 			radix:        10,
 		}, {
+			// Example 6 from FF1samples.pdf
 			name:         "FF1-AES128-Sample6",
 			keyHex:       "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F",
 			tweak:        []byte{55, 55, 55, 55, 112, 113, 114, 115, 55, 55, 55},
@@ -791,6 +793,16 @@ func TestFF1EncryptDecrypt(t *testing.T) {
 			expectedEnc:  "xbj3kv35jrawxv32ysr",
 			radix:        36,
 		},
+		{
+			// Credit Card Number example
+			name:         "FF1-AES128-CreditCardNumber",
+			keyHex:       "637265646974636172646E756D626572",
+			tweak:        []byte{},
+			plaintextStr: "4557534296728436",
+			expectedEnc:  "5055966384254029",
+			radix:        10,
+		},
+
 		// Add more test cases here from FF1samples.pdf
 	}
 
