@@ -1,5 +1,7 @@
 # 🔐 Go-FPE
 
+![GitHub last commit](https://img.shields.io/github/last-commit/ac999/go-fpe)
+
 A lightweight and modular cryptographic library written in Go, implementing secure and standards-compliant algorithms such as AES (Advanced Encryption Standard) and FF1 (Format-Preserving Encryption). Built for educational purposes.
 
 ## 📦 Features
